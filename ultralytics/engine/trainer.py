@@ -230,7 +230,7 @@ class BaseTrainer:
 
         # Model
         self.run_callbacks("on_pretrain_routine_start")
-        ckpt = self.setup_model()
+        ckpt = self.setup_model() #ckpt is the torch.load(.pt) object, the fuction also set self.model to the DetectionModel object
         self.model = self.model.to(self.device)
         self.set_model_attributes()
 
