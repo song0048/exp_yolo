@@ -417,3 +417,15 @@ class Concat(nn.Module):
     def forward(self, x):
         """Forward pass for the YOLOv8 mask Proto module."""
         return torch.cat(x, self.d)
+    
+class Add(nn.Module):
+    """Add a list of tensors."""
+
+    def __init__(self, dimension=0):
+        """Add a list of tensors."""
+        super().__init__()
+        self.d = dimension
+
+    def forward(self, x):
+        """Forward pass for the YOLOv8 mask Proto module."""
+        return torch.sum(torch.stack(x), dim=self.d)
