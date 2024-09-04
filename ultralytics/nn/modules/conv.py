@@ -421,19 +421,21 @@ class Concat(nn.Module):
 class Add(nn.Module):
     """Add a list of tensors."""
 
-    def __init__(self, dimension=0, scalar_weighted=False):
+    def __init__(self, f_layer_list, dimension=0, scalar_weighted=False):
         """Add a list of tensors."""
         super().__init__()
         self.d = dimension
         self.scalar_weighted = scalar_weighted
         if scalar_weighted:
-            self.weight = nn.Parameter(torch.randn(2))
+            self.weight = nn.Parameter(torch.randn(len(f_layer_list)))
+            self.eps = 1e-3
 
     def forward(self, x):
         """Forward pass for the YOLOv8 mask Proto module."""
         
         if self.scalar_weighted:
-            return torch.sum(torch.stack([self.weight[n] * x[n] for n in range(len(x))]), dim=self.d)
+            out = torch.sum(torch.stack([self.weight[n] * x[n] for n in range(len(x))]), dim=self.d)
+            return out / (torch.sum(self.weight) + self.eps)
         
         else:
             return torch.sum(torch.stack(x), dim=self.d)

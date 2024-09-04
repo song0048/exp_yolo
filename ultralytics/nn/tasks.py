@@ -986,6 +986,7 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             c2 = ch[f[-1]]
         elif m is Add:
             c2 = ch[f[0]]
+            args = [f, *args]
         else:
             c2 = ch[f]
 
