@@ -433,7 +433,7 @@ class Add(nn.Module):
     def forward(self, x):
         """Forward pass for the YOLOv8 mask Proto module."""
         
-        if self.scalar_weighted:
+        if getattr(self, 'scalar_weighted', False):
             out = torch.sum(torch.stack([self.weight[n] * x[n] for n in range(len(x))]), dim=self.d)
             return out / (torch.sum(self.weight) + self.eps)
         
