@@ -71,6 +71,9 @@ from .conv import (
     LightConv,
     RepConv,
     SpatialAttention,
+    GSConv,
+    VoVGSCSP,
+    Add
 )
 from .head import OBB, Classify, Detect, Pose, RTDETRDecoder, Segment, WorldDetect, v10Detect
 from .transformer import (
@@ -156,4 +159,11 @@ __all__ = (
     "C2fCIB",
     "Attention",
     "PSA",
+<<<<<<< new_main
+=======
+    "SCDown",
+    "GSConv",
+    "VoVGSCSP",
+    "Add",
+>>>>>>> new_exp
 )
