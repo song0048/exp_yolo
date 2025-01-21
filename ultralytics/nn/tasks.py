@@ -64,6 +64,9 @@ from ultralytics.nn.modules import (
     TorchVision,
     WorldDetect,
     v10Detect,
+    GSConv,
+    VoVGSCSP,
+    Add
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -905,7 +908,7 @@ def attempt_load_weights(weights, device=None, inplace=True, fuse=False):
 
 def attempt_load_one_weight(weight, device=None, inplace=True, fuse=False):
     """Loads a single model weights."""
-    ckpt, weight = torch_safe_load(weight)  # load ckpt
+    ckpt, weight = torch_safe_load(weight)  # load ckpt, ckpt is the torch.load('xxxxx.pt')['model'], weight is the 'xxxx.pt' path/str
     args = {**DEFAULT_CFG_DICT, **(ckpt.get("train_args", {}))}  # combine model and default args, preferring model args
     model = (ckpt.get("ema") or ckpt["model"]).to(device).float()  # FP32 model
 
@@ -989,6 +992,8 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             PSA,
             SCDown,
             C2fCIB,
+            GSConv,
+            VoVGSCSP,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1066,6 +1071,9 @@ def parse_model(d, ch, verbose=True):  # model_dict, input_channels(3)
             args = [c1, c2, *args[1:]]
         elif m is CBFuse:
             c2 = ch[f[-1]]
+        elif m is Add:
+            c2 = ch[f[0]]
+            args = [f, *args]
         else:
             c2 = ch[f]
 

@@ -1,3 +1,6 @@
+# Folder for Experimental Code
+_trial/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -131,6 +134,7 @@ venv.bak/
 
 # mkdocs documentation
 /site
+mkdocs_github_authors.yaml
 
 # mypy
 .mypy_cache/
@@ -140,8 +144,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# datasets and projects (ignore /datasets dir at root only to allow for docs/en/datasets dir)
-/datasets
+# datasets and projects
+datasets/
 runs/
 wandb/
 .DS_Store
