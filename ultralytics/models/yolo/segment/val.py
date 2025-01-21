@@ -1,4 +1,4 @@
-# Ultralytics YOLO 🚀, AGPL-3.0 license
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
@@ -22,7 +22,7 @@ class SegmentationValidator(DetectionValidator):
         ```python
         from ultralytics.models.yolo.segment import SegmentationValidator
 
-        args = dict(model='yolov8n-seg.pt', data='coco8-seg.yaml')
+        args = dict(model="yolo11n-seg.pt", data="coco8-seg.yaml")
         validator = SegmentationValidator(args=args)
         validator()
         ```
@@ -76,7 +76,7 @@ class SegmentationValidator(DetectionValidator):
             self.args.iou,
             labels=self.lb,
             multi_label=True,
-            agnostic=self.args.single_cls,
+            agnostic=self.args.single_cls or self.args.agnostic_nms,
             max_det=self.args.max_det,
             nc=self.nc,
         )
@@ -135,8 +135,8 @@ class SegmentationValidator(DetectionValidator):
                 stat["tp_m"] = self._process_batch(
                     predn, bbox, cls, pred_masks, gt_masks, self.args.overlap_mask, masks=True
                 )
-                if self.args.plots:
-                    self.confusion_matrix.process_batch(predn, bbox, cls)
+            if self.args.plots:
+                self.confusion_matrix.process_batch(predn, bbox, cls)
 
             for k in self.stats.keys():
                 self.stats[k].append(stat[k])
@@ -162,7 +162,7 @@ class SegmentationValidator(DetectionValidator):
                     pred_masks,
                     self.args.save_conf,
                     pbatch["ori_shape"],
-                    self.save_dir / "labels" / f'{Path(batch["im_file"][si]).stem}.txt',
+                    self.save_dir / "labels" / f"{Path(batch['im_file'][si]).stem}.txt",
                 )
 
     def finalize_metrics(self, *args, **kwargs):

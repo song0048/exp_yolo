@@ -1,8 +1,8 @@
-# Ultralytics YOLO 🚀, AGPL-3.0 license
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """
-This Python script is designed to automate the building and post-processing of MkDocs documentation, particularly for
-projects with multilingual content. It streamlines the workflow for generating localized versions of the documentation
-and updating HTML links to ensure they are correctly formatted.
+Automates the building and post-processing of MkDocs documentation, particularly for projects with multilingual content.
+It streamlines the workflow for generating localized versions of the documentation and updating HTML links to ensure
+they are correctly formatted.
 
 Key Features:
     - Automated building of MkDocs documentation: The script compiles both the main documentation and
@@ -24,6 +24,7 @@ Note:
     - This script is built to be run in an environment where Python and MkDocs are installed and properly configured.
 """
 
+import json
 import os
 import re
 import shutil
@@ -36,6 +37,14 @@ from tqdm import tqdm
 os.environ["JUPYTER_PLATFORM_DIRS"] = "1"  # fix DeprecationWarning: Jupyter is migrating to use standard platformdirs
 DOCS = Path(__file__).parent.resolve()
 SITE = DOCS.parent / "site"
+LINK_PATTERN = re.compile(r"(https?://[^\s()<>]*[^\s()<>.,:;!?\'\"])")
+
+
+def create_vercel_config():
+    """Create vercel.json in the site directory with customized configuration settings."""
+    config = {"trailingSlash": True}
+    with open(SITE / "vercel.json", "w") as f:
+        json.dump(config, f, indent=2)
 
 
 def prepare_docs_markdown(clone_repos=True):
@@ -64,8 +73,6 @@ def prepare_docs_markdown(clone_repos=True):
 
 def update_page_title(file_path: Path, new_title: str):
     """Update the title of an HTML file."""
-
-    # Read the content of the file
     with open(file_path, encoding="utf-8") as file:
         content = file.read()
 
@@ -123,7 +130,7 @@ def update_markdown_files(md_filepath: Path):
         content = content.replace("‘", "'").replace("’", "'")
 
         # Add frontmatter if missing
-        if not content.strip().startswith("---\n"):
+        if not content.strip().startswith("---\n") and "macros" not in md_filepath.parts:  # skip macros directory
             header = "---\ncomments: true\ndescription: TODO ADD DESCRIPTION\nkeywords: TODO ADD KEYWORDS\n---\n\n"
             content = header + content
 
@@ -153,6 +160,7 @@ def update_markdown_files(md_filepath: Path):
 
 def update_docs_html():
     """Updates titles, edit links, head sections, and converts plaintext links in HTML documentation."""
+    # Update 404 titles
     update_page_title(SITE / "404.html", new_title="Ultralytics Docs - Not Found")
 
     # Update edit links
@@ -164,7 +172,7 @@ def update_docs_html():
     # Convert plaintext links to HTML hyperlinks
     files_modified = 0
     for html_file in tqdm(SITE.rglob("*.html"), desc="Converting plaintext links"):
-        with open(html_file, "r", encoding="utf-8") as file:
+        with open(html_file, encoding="utf-8") as file:
             content = file.read()
         updated_content = convert_plaintext_links_to_html(content)
         if updated_content != content:
@@ -177,6 +185,12 @@ def update_docs_html():
     script = ""
     if any(script):
         update_html_head(script)
+
+    # Delete the /macros directory from the built site
+    macros_dir = SITE / "macros"
+    if macros_dir.exists():
+        print(f"Removing /macros directory from site: {macros_dir}")
+        shutil.rmtree(macros_dir)
 
 
 def convert_plaintext_links_to_html(content):
@@ -192,12 +206,9 @@ def convert_plaintext_links_to_html(content):
     for paragraph in main_content.find_all(["p", "li"]):  # Focus on paragraphs and list items
         for text_node in paragraph.find_all(string=True, recursive=False):
             if text_node.parent.name not in {"a", "code"}:  # Ignore links and code blocks
-                new_text = re.sub(
-                    r'(https?://[^\s()<>]+(?:\.[^\s()<>]+)+)(?<![.,:;\'"])',
-                    r'<a href="\1">\1</a>',
-                    str(text_node),
-                )
-                if "<a" in new_text:
+                new_text = LINK_PATTERN.sub(r'<a href="\1">\1</a>', str(text_node))
+                if "<a href=" in new_text:
+                    # Parse the new text with BeautifulSoup to handle HTML properly
                     new_soup = BeautifulSoup(new_text, "html.parser")
                     text_node.replace_with(new_soup)
                     modified = True
@@ -205,17 +216,86 @@ def convert_plaintext_links_to_html(content):
     return str(soup) if modified else content
 
 
+def remove_macros():
+    """Removes the /macros directory and related entries in sitemap.xml from the built site."""
+    shutil.rmtree(SITE / "macros", ignore_errors=True)
+    (SITE / "sitemap.xml.gz").unlink(missing_ok=True)
+
+    # Process sitemap.xml
+    sitemap = SITE / "sitemap.xml"
+    lines = sitemap.read_text(encoding="utf-8").splitlines(keepends=True)
+
+    # Find indices of '/macros/' lines
+    macros_indices = [i for i, line in enumerate(lines) if "/macros/" in line]
+
+    # Create a set of indices to remove (including lines before and after)
+    indices_to_remove = set()
+    for i in macros_indices:
+        indices_to_remove.update(range(i - 1, i + 3))  # i-1, i, i+1, i+2, i+3
+
+    # Create new list of lines, excluding the ones to remove
+    new_lines = [line for i, line in enumerate(lines) if i not in indices_to_remove]
+
+    # Write the cleaned content back to the file
+    sitemap.write_text("".join(new_lines), encoding="utf-8")
+
+    print(f"Removed {len(macros_indices)} URLs containing '/macros/' from {sitemap}")
+
+
+def minify_files(html=True, css=True, js=True):
+    """Minifies HTML, CSS, and JS files and prints total reduction stats."""
+    minify, compress, jsmin = None, None, None
+    try:
+        if html:
+            from minify_html import minify
+        if css:
+            from csscompressor import compress
+        if js:
+            import jsmin
+    except ImportError as e:
+        print(f"Missing required package: {str(e)}")
+        return
+
+    stats = {}
+    for ext, minifier in {
+        "html": (lambda x: minify(x, keep_closing_tags=True, minify_css=True, minify_js=True)) if html else None,
+        "css": compress if css else None,
+        "js": jsmin.jsmin if js else None,
+    }.items():
+        if not minifier:
+            continue
+
+        stats[ext] = {"original": 0, "minified": 0}
+        directory = ""  # "stylesheets" if ext == css else "javascript" if ext == "js" else ""
+        for f in tqdm((SITE / directory).rglob(f"*.{ext}"), desc=f"Minifying {ext.upper()}"):
+            content = f.read_text(encoding="utf-8")
+            minified = minifier(content)
+            stats[ext]["original"] += len(content)
+            stats[ext]["minified"] += len(minified)
+            f.write_text(minified, encoding="utf-8")
+
+    for ext, data in stats.items():
+        if data["original"]:
+            r = data["original"] - data["minified"]  # reduction
+            print(f"Total {ext.upper()} reduction: {(r / data['original']) * 100:.2f}% ({r / 1024:.2f} KB saved)")
+
+
 def main():
-    """Builds docs, updates titles and edit links, and prints local server command."""
+    """Builds docs, updates titles and edit links, minifies HTML, and prints local server command."""
     prepare_docs_markdown()
 
     # Build the main documentation
     print(f"Building docs from {DOCS}")
     subprocess.run(f"mkdocs build -f {DOCS.parent}/mkdocs.yml --strict", check=True, shell=True)
+    remove_macros()
+    create_vercel_config()
     print(f"Site built at {SITE}")
 
     # Update docs HTML pages
     update_docs_html()
+
+    # Minify files
+    minify_files(html=False, css=False, js=False)
 
     # Show command to serve built website
     print('Docs built correctly ✅\nServe site at http://localhost:8000 with "python -m http.server --directory site"')

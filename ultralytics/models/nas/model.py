@@ -1,4 +1,4 @@
-# Ultralytics YOLO 🚀, AGPL-3.0 license
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """
 YOLO-NAS model interface.
 
@@ -6,8 +6,8 @@ Example:
     ```python
     from ultralytics import NAS
 
-    model = NAS('yolo_nas_s')
-    results = model.predict('ultralytics/assets/bus.jpg')
+    model = NAS("yolo_nas_s")
+    results = model.predict("ultralytics/assets/bus.jpg")
     ```
 """
 
@@ -34,8 +34,8 @@ class NAS(Model):
         ```python
         from ultralytics import NAS
 
-        model = NAS('yolo_nas_s')
-        results = model.predict('ultralytics/assets/bus.jpg')
+        model = NAS("yolo_nas_s")
+        results = model.predict("ultralytics/assets/bus.jpg")
         ```
 
     Attributes:
