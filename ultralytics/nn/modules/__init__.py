@@ -1,4 +1,4 @@
-# Ultralytics YOLO 🚀, AGPL-3.0 license
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """
 Ultralytics modules.
 
@@ -56,6 +56,7 @@ from .block import (
     RepVGGDW,
     ResNetLayer,
     SCDown,
+    TorchVision,
 )
 from .conv import (
     CBAM,
@@ -68,6 +69,7 @@ from .conv import (
     DWConvTranspose2d,
     Focus,
     GhostConv,
+    Index,
     LightConv,
     RepConv,
     SpatialAttention,
@@ -166,4 +168,6 @@ __all__ = (
     "VoVGSCSP",
     "Add",
 >>>>>>> new_exp
+    "TorchVision",
+    "Index",
 )
